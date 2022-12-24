@@ -69,7 +69,7 @@ func (service *Service) Refresh(refreshTokenId string) (*RefreshResponse, error)
 	}
 
 	// Check if refresh token is expired
-	if token.RefreshExpiresAt.After(time.Now()) {
+	if time.Now().After(token.RefreshExpiresAt) {
 		return nil, ErrTokenExpired
 	}
 
@@ -92,7 +92,7 @@ func (service *Service) Verify(accessTokenId string) (bool, error) {
 	}
 
 	// Check if access token is expired
-	if token.AccessExpiresAt.After(time.Now()) {
+	if time.Now().After(token.AccessExpiresAt) {
 		return false, ErrTokenExpired
 	}
 
