@@ -134,3 +134,11 @@ func (service *Service) RevokeAll(accessTokenId string) error {
 	return service.dao.DeleteAll(token.UserID)
 
 }
+
+func (service *Service) AccessExpireDuration() time.Duration {
+	return service.accessExpireDuration
+}
+
+func (service *Service) RefreshExpireDuration() time.Duration {
+	return service.refreshExpireDuration
+}
