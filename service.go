@@ -40,6 +40,7 @@ func (service *Service) Issue(userId string) (*IssueResponse, error) {
 		AccessID:         accessTokenId,
 		RefreshExpiresAt: refershExpiry,
 		AccessExpiresAt:  accessExpiry,
+		UserID:           userId,
 	})
 
 	if err != nil {
