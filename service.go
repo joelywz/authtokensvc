@@ -92,6 +92,10 @@ func (service *Service) Verify(accessTokenId string) (bool, error) {
 		return false, err
 	}
 
+	if token == nil {
+		return false, ErrTokenNotFound
+	}
+
 	// Check if access token is expired
 	if time.Now().After(token.AccessExpiresAt) {
 		return false, ErrTokenExpired
