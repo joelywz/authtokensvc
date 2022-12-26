@@ -118,6 +118,22 @@ func (service *Service) Revoke(accessTokenId string) error {
 
 }
 
+func (service *Service) RevokeByRefreshID(refreshTokenId string) error {
+	// Obtain token by refresh token id from database
+	token, err := service.dao.GetRefreshToken(refreshTokenId)
+
+	if err != nil {
+		return err
+	}
+
+	if token == nil {
+		return ErrTokenNotFound
+	}
+
+	// Delete token
+	return service.dao.Delete(token.RefreshID)
+}
+
 func (service *Service) RevokeAll(accessTokenId string) error {
 
 	// Obtain token by access token id from database
