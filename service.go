@@ -83,25 +83,25 @@ func (service *Service) Refresh(refreshTokenId string) (*RefreshResponse, error)
 	return service.Issue(token.UserID)
 }
 
-func (service *Service) Verify(accessTokenId string) (bool, error) {
+func (service *Service) Verify(accessTokenId string) (*Token, error) {
 
 	// Obtain token by access token id from database
 	token, err := service.dao.GetAccessToken(accessTokenId)
 
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
 	if token == nil {
-		return false, ErrTokenNotFound
+		return nil, ErrTokenNotFound
 	}
 
 	// Check if access token is expired
 	if time.Now().After(token.AccessExpiresAt) {
-		return false, ErrTokenExpired
+		return nil, ErrTokenExpired
 	}
 
-	return true, nil
+	return token, nil
 }
 
 func (service *Service) Revoke(accessTokenId string) error {
