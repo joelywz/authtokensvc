@@ -1,4 +1,4 @@
-module github.com/joelywz/authtokensvc
+module github.com/joelywz/authtokensvc/v2
 
 go 1.19
 
@@ -8,9 +8,11 @@ require (
 )
 
 require (
+	github.com/akyoto/cache v1.0.6 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/klauspost/compress v1.15.13 // indirect
 	github.com/montanaflynn/stats v0.6.6 // indirect
+	github.com/muesli/cache2go v0.0.0-20221011235721-518229cd8021 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect

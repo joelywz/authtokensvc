@@ -7,20 +7,23 @@ import (
 )
 
 type Service struct {
-	dao                   Dao
+	accessDao             Dao
+	refreshDao            Dao
 	accessExpireDuration  time.Duration
 	refreshExpireDuration time.Duration
 }
 
 type Config struct {
-	Dao                   Dao
+	AccessDao             Dao
+	RefreshDao            Dao
 	AccessExpireDuration  time.Duration
 	RefreshExpireDuration time.Duration
 }
 
 func New(config *Config) *Service {
 	return &Service{
-		dao:                   config.Dao,
+		accessDao:             config.AccessDao,
+		refreshDao:            config.RefreshDao,
 		accessExpireDuration:  config.AccessExpireDuration,
 		refreshExpireDuration: config.RefreshExpireDuration,
 	}
@@ -32,15 +35,24 @@ func (service *Service) Issue(userId string) (*IssueResponse, error) {
 	accessTokenId := gonanoid.Must(32)
 	accessExpiry := time.Now().Add(service.accessExpireDuration)
 	refreshTokenId := gonanoid.Must(32)
-	refershExpiry := time.Now().Add(service.refreshExpireDuration)
+	refreshExpiry := time.Now().Add(service.refreshExpireDuration)
 
-	// Save token
-	err := service.dao.SaveToken(&Token{
-		RefreshID:        refreshTokenId,
-		AccessID:         accessTokenId,
-		RefreshExpiresAt: refershExpiry,
-		AccessExpiresAt:  accessExpiry,
-		UserID:           userId,
+	// Save refresh token
+	err := service.refreshDao.Create(&Token{
+		ID:        refreshTokenId,
+		ExpiresAt: refreshExpiry,
+		UserID:    userId,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Save access token2
+	err = service.accessDao.Create(&Token{
+		ID:        accessTokenId,
+		ExpiresAt: accessExpiry,
+		UserID:    userId,
 	})
 
 	if err != nil {
@@ -59,7 +71,7 @@ func (service *Service) Issue(userId string) (*IssueResponse, error) {
 func (service *Service) Refresh(refreshTokenId string) (*RefreshResponse, error) {
 
 	// Obtain token by refresh token id from database
-	token, err := service.dao.GetRefreshToken(refreshTokenId)
+	token, err := service.refreshDao.Get(refreshTokenId)
 
 	if err != nil {
 		return nil, err
@@ -70,12 +82,12 @@ func (service *Service) Refresh(refreshTokenId string) (*RefreshResponse, error)
 	}
 
 	// Check if refresh token is expired
-	if time.Now().After(token.RefreshExpiresAt) {
+	if time.Now().After(token.ExpiresAt) {
 		return nil, ErrTokenExpired
 	}
 
 	// Delete token
-	if err := service.dao.Delete(refreshTokenId); err != nil {
+	if err := service.refreshDao.DeleteByID(refreshTokenId); err != nil {
 		return nil, err
 	}
 
@@ -86,7 +98,7 @@ func (service *Service) Refresh(refreshTokenId string) (*RefreshResponse, error)
 func (service *Service) Verify(accessTokenId string) (*Token, error) {
 
 	// Obtain token by access token id from database
-	token, err := service.dao.GetAccessToken(accessTokenId)
+	token, err := service.accessDao.Get(accessTokenId)
 
 	if err != nil {
 		return nil, err
@@ -97,17 +109,17 @@ func (service *Service) Verify(accessTokenId string) (*Token, error) {
 	}
 
 	// Check if access token is expired
-	if time.Now().After(token.AccessExpiresAt) {
+	if time.Now().After(token.ExpiresAt) {
 		return nil, ErrTokenExpired
 	}
 
 	return token, nil
 }
 
-func (service *Service) Revoke(accessTokenId string) error {
+func (service *Service) Revoke(refreshTokenId string) error {
 
 	// Obtain token by access token id from database
-	token, err := service.dao.GetAccessToken(accessTokenId)
+	token, err := service.refreshDao.Get(refreshTokenId)
 
 	if err != nil {
 		return err
@@ -118,30 +130,14 @@ func (service *Service) Revoke(accessTokenId string) error {
 	}
 
 	// Delete token
-	return service.dao.Delete(token.RefreshID)
+	return service.refreshDao.DeleteByID(refreshTokenId)
 
 }
 
-func (service *Service) RevokeByRefreshID(refreshTokenId string) error {
-	// Obtain token by refresh token id from database
-	token, err := service.dao.GetRefreshToken(refreshTokenId)
-
-	if err != nil {
-		return err
-	}
-
-	if token == nil {
-		return ErrTokenNotFound
-	}
-
-	// Delete token
-	return service.dao.Delete(token.RefreshID)
-}
-
-func (service *Service) RevokeAll(accessTokenId string) error {
+func (service *Service) RevokeAll(refreshTokenId string) error {
 
 	// Obtain token by access token id from database
-	token, err := service.dao.GetAccessToken(accessTokenId)
+	token, err := service.refreshDao.Get(refreshTokenId)
 
 	if err != nil {
 		return err
@@ -151,9 +147,17 @@ func (service *Service) RevokeAll(accessTokenId string) error {
 		return ErrTokenNotFound
 	}
 
-	// Delete tokens
-	return service.dao.DeleteAll(token.UserID)
+	// Delete refresh tokens
+	if err := service.refreshDao.DeleteByUserID(token.UserID); err != nil {
+		return err
+	}
 
+	// Delete access tokens
+	if err := service.accessDao.DeleteByUserID(token.UserID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (service *Service) AccessExpireDuration() time.Duration {
