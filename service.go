@@ -7,15 +7,15 @@ import (
 )
 
 type Service struct {
-	accessDao             Dao
-	refreshDao            Dao
+	accessDao             AccessDao
+	refreshDao            RefreshDao
 	accessExpireDuration  time.Duration
 	refreshExpireDuration time.Duration
 }
 
 type Config struct {
-	AccessDao             Dao
-	RefreshDao            Dao
+	AccessDao             AccessDao
+	RefreshDao            RefreshDao
 	AccessExpireDuration  time.Duration
 	RefreshExpireDuration time.Duration
 }
@@ -37,7 +37,7 @@ func (service *Service) Issue(userId string) (*IssueResponse, error) {
 	refreshTokenId := gonanoid.Must(32)
 	refreshExpiry := time.Now().Add(service.refreshExpireDuration)
 
-	// Save refresh token
+	// Create refresh token
 	err := service.refreshDao.Create(&Token{
 		ID:        refreshTokenId,
 		ExpiresAt: refreshExpiry,
@@ -48,7 +48,7 @@ func (service *Service) Issue(userId string) (*IssueResponse, error) {
 		return nil, err
 	}
 
-	// Save access token2
+	// Create access token2
 	err = service.accessDao.Create(&Token{
 		ID:        accessTokenId,
 		ExpiresAt: accessExpiry,

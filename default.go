@@ -12,7 +12,19 @@ type accessCacheDao struct {
 	userAccessTokenMap map[string][]string
 }
 
-func (a accessCacheDao) DeleteByUserID(id string) error {
+func (a *accessCacheDao) Get(id string) (*Token, error) {
+	res, err := a.cache.Value(id)
+
+	if err != nil {
+		return nil, nil
+	}
+
+	token := res.Data().(*Token)
+
+	return token, nil
+}
+
+func (a *accessCacheDao) DeleteByUserID(id string) error {
 	accessTokenIDs, ok := a.userAccessTokenMap[id]
 
 	if !ok {
@@ -29,17 +41,17 @@ func (a accessCacheDao) DeleteByUserID(id string) error {
 
 }
 
-func (a accessCacheDao) DeleteByID(id string) error {
+func (a *accessCacheDao) DeleteByID(id string) error {
 	a.cache.Delete(id)
 	return nil
 }
 
-func (a accessCacheDao) DeleteAll() error {
+func (a *accessCacheDao) DeleteAll() error {
 	a.cache.Flush()
 	return nil
 }
 
-func (a accessCacheDao) Create(token *Token) error {
+func (a *accessCacheDao) Create(token *Token) error {
 
 	lifespan := token.ExpiresAt.Sub(time.Now())
 
@@ -48,7 +60,7 @@ func (a accessCacheDao) Create(token *Token) error {
 	return nil
 }
 
-func (a accessCacheDao) Has(id string) (bool, error) {
+func (a *accessCacheDao) Has(id string) (bool, error) {
 
 	_, err := a.cache.Value(id)
 
